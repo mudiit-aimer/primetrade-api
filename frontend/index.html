@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrimeTrade Task Manager</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+  .hidden { display: none !important; }
+  nav { background: #1a1a1a; border-bottom: 1px solid #2a2a2a; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; }
+  nav h1 { font-size: 18px; font-weight: 600; color: #fff; }
+  nav .user-info { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #aaa; }
+  .badge { background: #1e3a5f; color: #60a5fa; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .badge.admin { background: #3b1f1f; color: #f87171; }
+  button { cursor: pointer; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; transition: opacity 0.15s; }
+  button:hover { opacity: 0.85; }
+  .btn-primary { background: #2563eb; color: #fff; padding: 8px 16px; }
+  .btn-danger { background: #dc2626; color: #fff; padding: 6px 12px; font-size: 12px; }
+  .btn-ghost { background: transparent; color: #aaa; padding: 6px 12px; border: 1px solid #333; }
+  #auth-section { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .auth-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 36px; width: 100%; max-width: 400px; }
+  .auth-card h2 { font-size: 22px; margin-bottom: 24px; color: #fff; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: #111; border-radius: 8px; padding: 4px; }
+  .tab { flex: 1; padding: 8px; text-align: center; border-radius: 6px; cursor: pointer; font-size: 14px; color: #888; }
+  .tab.active { background: #2a2a2a; color: #fff; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; color: #888; margin-bottom: 6px; }
+  .form-group input, .form-group select { width: 100%; background: #111; border: 1px solid #333; border-radius: 6px; padding: 10px 12px; color: #e0e0e0; font-size: 14px; outline: none; }
+  .form-group input:focus { border-color: #2563eb; }
+  .auth-card .btn-primary { width: 100%; padding: 10px; margin-top: 8px; font-size: 15px; }
+  .error-msg { color: #f87171; font-size: 13px; margin-top: 10px; text-align: center; }
+  .success-msg { color: #34d399; font-size: 13px; margin-top: 10px; text-align: center; }
+  #dashboard-section { padding: 24px; max-width: 900px; margin: 0 auto; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; }
+  .stat-card .label { font-size: 12px; color: #666; margin-bottom: 6px; }
+  .stat-card .value { font-size: 26px; font-weight: 600; color: #fff; }
+  .task-form { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .task-form h3 { font-size: 15px; color: #fff; margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; }
+  .filter-btn { background: #1a1a1a; border: 1px solid #2a2a2a; color: #888; padding: 6px 14px; border-radius: 20px; font-size: 13px; }
+  .filter-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .task-item { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .task-title { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 4px; }
+  .task-desc { font-size: 13px; color: #666; margin-bottom: 8px; }
+  .task-meta { display: flex; gap: 8px; }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .pill.pending { background: #1e3a5f; color: #60a5fa; }
+  .pill.in_progress { background: #3b2f00; color: #fbbf24; }
+  .pill.done { background: #052e16; color: #34d399; }
+  .pill.low { background: #1a2a1a; color: #4ade80; }
+  .pill.medium { background: #2a2000; color: #fbbf24; }
+  .pill.high { background: #2a0000; color: #f87171; }
+  .task-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  select.inline-select { background: #111; border: 1px solid #333; color: #e0e0e0; border-radius: 4px; padding: 4px 6px; font-size: 12px; }
+  .empty-state { text-align: center; color: #555; padding: 48px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div id="auth-section">
+  <div class="auth-card">
+    <h2>PrimeTrade</h2>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('login')">Login</div>
+      <div class="tab" onclick="switchTab('register')">Register</div>
+    </div>
+    <div id="login-form">
+      <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="login()">Login</button>
+      <div id="login-msg"></div>
+    </div>
+    <div id="register-form" class="hidden">
+      <div class="form-group"><label>Username</label><input type="text" id="reg-username" placeholder="mudit123"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="reg-email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="reg-password" placeholder="min 6 characters"></div>
+      <div class="form-group"><label>Role</label>
+        <select id="reg-role"><option value="user">User</option><option value="admin">Admin</option></select>
+      </div>
+      <button class="btn-primary" onclick="register()">Create Account</button>
+      <div id="register-msg"></div>
+    </div>
+  </div>
+</div>
+
+<div id="dashboard-section" class="hidden">
+  <nav style="position:fixed;top:0;left:0;right:0;z-index:10">
+    <h1>PrimeTrade Tasks</h1>
+    <div class="user-info">
+      <span id="nav-username"></span>
+      <span id="nav-role-badge" class="badge"></span>
+      <button class="btn-ghost" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+  <div style="margin-top:64px">
+    <div class="stats">
+      <div class="stat-card"><div class="label">Total</div><div class="value" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="label">Pending</div><div class="value" id="stat-pending">0</div></div>
+      <div class="stat-card"><div class="label">In Progress</div><div class="value" id="stat-inprogress">0</div></div>
+      <div class="stat-card"><div class="label">Done</div><div class="value" id="stat-done">0</div></div>
+    </div>
+    <div class="task-form">
+      <h3>Add New Task</h3>
+      <div class="form-group"><label>Title</label><input type="text" id="task-title" placeholder="Task title..."></div>
+      <div class="form-group"><label>Description</label><input type="text" id="task-desc" placeholder="Optional..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Priority</label>
+          <select id="task-priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        </div>
+        <div class="form-group"><label>Status</label>
+          <select id="task-status"><option value="pending" selected>Pending</option><option value="in_progress">In Progress</option><option value="done">Done</option></select>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="createTask()">+ Add Task</button>
+      <div id="task-msg"></div>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" onclick="filterTasks('all', this)">All</button>
+      <button class="filter-btn" onclick="filterTasks('pending', this)">Pending</button>
+      <button class="filter-btn" onclick="filterTasks('in_progress', this)">In Progress</button>
+      <button class="filter-btn" onclick="filterTasks('done', this)">Done</button>
+    </div>
+    <div id="task-list"></div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api/v1';
+let token = localStorage.getItem('token');
+let allTasks = [];
+
+if (token) loadDashboard();
+
+function switchTab(tab) {
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', (tab === 'login') === (i === 0)));
+}
+
+async function api(path, method = 'GET', body = null) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, { method, headers, body: body ? JSON.stringify(body) : null });
+  return { data: await res.json(), status: res.status };
+}
+
+function showMsg(id, msg, isError = true) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = isError ? 'error-msg' : 'success-msg';
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) return showMsg('login-msg', 'Email and password required');
+  const { data, status } = await api('/auth/login', 'POST', { email, password });
+  if (status !== 200) return showMsg('login-msg', data.error);
+  token = data.access_token;
+  localStorage.setItem('token', token);
+  loadDashboard();
+}
+
+async function register() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const role = document.getElementById('reg-role').value;
+  if (!username || !email || !password) return showMsg('register-msg', 'All fields required');
+  const { data, status } = await api('/auth/register', 'POST', { username, email, password, role });
+  if (status !== 201) return showMsg('register-msg', data.error);
+  showMsg('register-msg', 'Account created! Please login.', false);
+  setTimeout(() => switchTab('login'), 1500);
+}
+
+function logout() {
+  token = null;
+  localStorage.removeItem('token');
+  document.getElementById('auth-section').classList.remove('hidden');
+  document.getElementById('dashboard-section').classList.add('hidden');
+}
+
+async function loadDashboard() {
+  const { data, status } = await api('/auth/me');
+  if (status !== 200) return logout();
+  const user = data.user;
+  document.getElementById('nav-username').textContent = user.username;
+  const badge = document.getElementById('nav-role-badge');
+  badge.textContent = user.role;
+  badge.className = `badge ${user.role === 'admin' ? 'admin' : ''}`;
+  document.getElementById('auth-section').classList.add('hidden');
+  document.getElementById('dashboard-section').classList.remove('hidden');
+  await fetchTasks();
+}
+
+async function fetchTasks() {
+  const { data } = await api('/tasks/');
+  allTasks = data.tasks || [];
+  document.getElementById('stat-total').textContent = allTasks.length;
+  document.getElementById('stat-pending').textContent = allTasks.filter(t => t.status === 'pending').length;
+  document.getElementById('stat-inprogress').textContent = allTasks.filter(t => t.status === 'in_progress').length;
+  document.getElementById('stat-done').textContent = allTasks.filter(t => t.status === 'done').length;
+  renderTasks(allTasks);
+}
+
+function filterTasks(status, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const filtered = status === 'all' ? allTasks : allTasks.filter(t => t.status === status);
+  renderTasks(filtered);
+}
+
+function renderTasks(tasks) {
+  const list = document.getElementById('task-list');
+  if (!tasks.length) { list.innerHTML = '<div class="empty-state">No tasks found</div>'; return; }
+  list.innerHTML = tasks.map(t => `
+    <div class="task-item">
+      <div>
+        <div class="task-title">${t.title}</div>
+        ${t.description ? `<div class="task-desc">${t.description}</div>` : ''}
+        <div class="task-meta">
+          <span class="pill ${t.status}">${t.status.replace('_', ' ')}</span>
+          <span class="pill ${t.priority}">${t.priority}</span>
+        </div>
+      </div>
+      <div class="task-actions">
+        <select class="inline-select" onchange="updateStatus(${t.id}, this.value)">
+          <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
+          <option value="in_progress" ${t.status==='in_progress'?'selected':''}>In Progress</option>
+          <option value="done" ${t.status==='done'?'selected':''}>Done</option>
+        </select>
+        <button class="btn-danger" onclick="deleteTask(${t.id})">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) return showMsg('task-msg', 'Title is required');
+  const body = {
+    title,
+    description: document.getElementById('task-desc').value.trim(),
+    priority: document.getElementById('task-priority').value,
+    status: document.getElementById('task-status').value
+  };
+  const { data, status } = await api('/tasks/', 'POST', body);
+  if (status !== 201) return showMsg('task-msg', data.error);
+  document.getElementById('task-title').value = '';
+  document.getElementById('task-desc').value = '';
+  showMsg('task-msg', 'Task created!', false);
+  setTimeout(() => document.getElementById('task-msg').textContent = '', 2000);
+  await fetchTasks();
+}
+
+async function updateStatus(id, status) {
+  await api(`/tasks/${id}`, 'PUT', { status });
+  await fetchTasks();
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  await api(`/tasks/${id}`, 'DELETE');
+  await fetchTasks();
+}
+</script>
+</body>
+</html>
